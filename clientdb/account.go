@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/lightninglabs/llm/account"
 	"go.etcd.io/bbolt"
 )
@@ -15,6 +16,11 @@ var (
 	// information about complete accounts. These accounts are indexed by
 	// their trader key locator.
 	accountBucketKey = []byte("account")
+
+	// accountUpdateMetadataBucketKey is the key of a sub-bucket within the
+	// top level accounts bucket responsible for storing the metadata
+	// pertaining to a user initiated account update.
+	accountUpdateMetadataBucketKey = []byte("update-metadata")
 
 	// ErrAccountNotFound is an error returned when we attempt to retrieve
 	// information about an account but it is not found.
@@ -130,6 +136,49 @@ func (db *DB) Accounts() ([]*account.Account, error) {
 	}
 
 	return res, nil
+}
+
+func (db *DB) UpdateAccountWithMetadata(accountKey *btcec.PublicKey,
+	modifiers []account.Modifier, inputs []*wire.TxIn,
+	outputs []*wire.TxOut) error {
+
+	rawAccountKey := accountKey.SerializeCompressed()
+	return db.Update(func(tx *bbolt.Tx) error {
+		accounts, err := getBucket(tx, accountBucketKey)
+		if err != nil {
+			return err
+		}
+		err = updateAccount(accounts, accounts, rawAccountKey, modifiers)
+		if err != nil {
+			return err
+		}
+		return storeAccountUpdateMetadata(
+			accounts, rawAccountKey, inputs, outputs,
+		)
+	})
+}
+
+func (db *DB) AccountUpdateMetadata(accountKey *btcec.PublicKey) ([]*wire.TxIn,
+	[]*wire.TxOut, error) {
+
+	return nil, nil, nil
+}
+
+func storeAccountUpdateMetadata(accounts *bbolt.Bucket, accountKey []byte,
+	inputs []*wire.TxIn, outputs []*wire.TxOut) error {
+
+	var buf bytes.Buffer
+	if err := WriteElements(&buf, inputs, outputs); err != nil {
+		return err
+	}
+
+	updateMetadata, err := getNestedBucket(
+		accounts, accountUpdateMetadataBucketKey, false,
+	)
+	if err != nil {
+		return err
+	}
+	return updateMetadata.Put(accountKey, buf.Bytes())
 }
 
 func storeAccount(targetBucket *bbolt.Bucket, a *account.Account) error {

@@ -90,6 +90,32 @@ func WriteElement(w io.Writer, element interface{}) error {
 	case [32]byte:
 		return lnwire.WriteElement(w, e[:])
 
+	case []*wire.TxIn:
+		if err := WriteElement(w, uint32(len(e))); err != nil {
+			return err
+		}
+		for _, txIn := range e {
+			err := WriteElements(
+				w, txIn.PreviousOutPoint, txIn.Sequence,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
+	case []*wire.TxOut:
+		if err := WriteElement(w, uint32(len(e))); err != nil {
+			return err
+		}
+		for _, txOut := range e {
+			err := WriteElements(
+				w, txOut.Value, txOut.PkScript,
+			)
+			if err != nil {
+				return err
+			}
+		}
+
 	case *wire.MsgTx:
 		if err := e.Serialize(w); err != nil {
 			return err
@@ -197,6 +223,43 @@ func ReadElement(r io.Reader, element interface{}) error {
 		if err := lnwire.ReadElement(r, e[:]); err != nil {
 			return err
 		}
+
+	case *[]*wire.TxIn:
+		var n uint32
+		if err := ReadElement(r, &n); err != nil {
+			return err
+		}
+
+		inputs := make([]*wire.TxIn, n)
+		for i := uint32(0); i < n; i++ {
+			var txIn wire.TxIn
+			err := ReadElements(
+				r, &txIn.PreviousOutPoint, &txIn.Sequence,
+			)
+			if err != nil {
+				return err
+			}
+			inputs[i] = &txIn
+		}
+		*e = inputs
+
+	case *[]*wire.TxOut:
+		var n uint32
+		if err := ReadElement(r, &n); err != nil {
+			return err
+		}
+
+		outputs := make([]*wire.TxOut, n)
+		for i := uint32(0); i < n; i++ {
+			var txOut wire.TxOut
+			err := ReadElements(
+				r, &txOut.Value, &txOut.PkScript,
+			)
+			if err != nil {
+				return err
+			}
+		}
+		*e = outputs
 
 	case **wire.MsgTx:
 		var tx wire.MsgTx
