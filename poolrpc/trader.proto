@@ -572,6 +572,9 @@ message Order {
 
     // The minimum number of order units that must be matched per order pair.
     uint32 min_units_match = 12;
+
+    // The commitment type to use for the resulting matched channels.
+    CommitmentType commitment_type = 13;
 }
 
 message Bid {

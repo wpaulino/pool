@@ -1259,6 +1259,16 @@
         }
       }
     },
+    "poolrpcCommitmentType": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN_COMMITMENT_TYPE",
+        "STATIC_REMOTE_KEY",
+        "ANCHORS_ZERO_FEE",
+        "SCRIPT_ENFORCED_LEASE"
+      ],
+      "default": "UNKNOWN_COMMITMENT_TYPE"
+    },
     "poolrpcDepositAccountRequest": {
       "type": "object",
       "properties": {
@@ -1903,6 +1913,10 @@
           "type": "integer",
           "format": "int64",
           "description": "The minimum number of order units that must be matched per order pair."
+        },
+        "commitment_type": {
+          "$ref": "#/definitions/poolrpcCommitmentType",
+          "description": "The commitment type to use for the resulting matched channels."
         }
       }
     },

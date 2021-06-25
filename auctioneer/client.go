@@ -25,6 +25,7 @@ import (
 	"github.com/lightninglabs/pool/terms"
 	"github.com/lightningnetwork/lnd/keychain"
 	"github.com/lightningnetwork/lnd/lntypes"
+	"github.com/lightningnetwork/lnd/lnwallet"
 	"github.com/lightningnetwork/lnd/lnwallet/chainfee"
 	"github.com/lightningnetwork/lnd/tor"
 	"google.golang.org/grpc"
@@ -402,6 +403,23 @@ func (c *Client) SubmitOrder(ctx context.Context, o order.Order,
 			Addr:    addr.String(),
 		})
 	}
+	var commitmentType auctioneerrpc.CommitmentType
+	if o.Details().CommitmentType != nil {
+		switch *o.Details().CommitmentType {
+		case lnwallet.CommitmentTypeTweakless:
+			commitmentType = auctioneerrpc.CommitmentType_STATIC_REMOTE_KEY
+
+		case lnwallet.CommitmentTypeAnchorsZeroFeeHtlcTx:
+			commitmentType = auctioneerrpc.CommitmentType_ANCHORS_ZERO_FEE
+
+		case lnwallet.CommitmentTypeScriptEnforcedLease:
+			commitmentType = auctioneerrpc.CommitmentType_SCRIPT_ENFORCED_LEASE
+
+		default:
+			return fmt.Errorf("unhandled commitment type %v", c)
+		}
+	}
+
 	details := &auctioneerrpc.ServerOrder{
 		TraderKey:               o.Details().AcctKey[:],
 		RateFixed:               o.Details().FixedRate,
@@ -413,6 +431,7 @@ func (c *Client) SubmitOrder(ctx context.Context, o order.Order,
 		NodePub:                 serverParams.NodePubkey[:],
 		NodeAddr:                nodeAddrs,
 		MaxBatchFeeRateSatPerKw: uint64(o.Details().MaxBatchFeeRate),
+		CommitmentType:          commitmentType,
 	}
 
 	// Split into server message which is type specific.

@@ -12,6 +12,7 @@ import (
 	"github.com/lightninglabs/pool/sidecar"
 	"github.com/lightningnetwork/lnd/keychain"
 	"github.com/lightningnetwork/lnd/lntypes"
+	"github.com/lightningnetwork/lnd/lnwallet"
 	"github.com/lightningnetwork/lnd/lnwallet/chainfee"
 )
 
@@ -42,6 +43,8 @@ func TestSubmitOrder(t *testing.T) {
 		},
 	}
 	o.Details().MinUnitsMatch = 10
+	o.Details().CommitmentType = new(lnwallet.CommitmentType)
+	*o.Details().CommitmentType = lnwallet.CommitmentTypeAnchorsZeroFeeHtlcTx
 	err := store.SubmitOrder(o)
 	if err != nil {
 		t.Fatalf("unable to store order: %v", err)
@@ -100,6 +103,8 @@ func TestUpdateOrders(t *testing.T) {
 		MinNodeTier: 3,
 	}
 	o1.Details().MinUnitsMatch = 10
+	o1.Details().CommitmentType = new(lnwallet.CommitmentType)
+	*o1.Details().CommitmentType = lnwallet.CommitmentTypeAnchorsZeroFeeHtlcTx
 	err := store.SubmitOrder(o1)
 	if err != nil {
 		t.Fatalf("unable to store order: %v", err)
@@ -107,6 +112,8 @@ func TestUpdateOrders(t *testing.T) {
 	o2 := &order.Ask{
 		Kit: *dummyOrder(500000, 1337),
 	}
+	o2.Details().CommitmentType = new(lnwallet.CommitmentType)
+	*o2.Details().CommitmentType = lnwallet.CommitmentTypeAnchorsZeroFeeHtlcTx
 	err = store.SubmitOrder(o2)
 	if err != nil {
 		t.Fatalf("unable to store order: %v", err)
@@ -172,5 +179,6 @@ func dummyOrder(amt btcutil.Amount, leaseDuration uint32) *order.Kit {
 	copy(kit.AcctKey[:], testTraderKey.SerializeCompressed())
 	kit.UnitsUnfulfilled = 741
 	kit.LeaseDuration = leaseDuration
+	// kit.CommitmentType = lnwallet.CommitmentTypeAnchorsZeroFeeHtlcTx
 	return kit
 }

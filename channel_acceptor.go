@@ -139,5 +139,27 @@ func (s *ChannelAcceptor) acceptChannel(_ context.Context,
 		}, nil
 	}
 
+	// If the bid is targeting a specific commitment type and the inbound
+	// request isn't signaling one or is signaling the incorrect one, reject
+	// it.
+	if expectedChanBid.CommitmentType != nil && req.CommitmentType == nil {
+		return &lndclient.AcceptorResponse{
+			Accept: false,
+			Error: fmt.Sprintf("expected explicit negotiation "+
+				"for commitment type %v",
+				expectedChanBid.CommitmentType),
+		}, nil
+	}
+	if expectedChanBid.CommitmentType != nil &&
+		expectedChanBid.CommitmentType != req.CommitmentType {
+
+		return &lndclient.AcceptorResponse{
+			Accept: false,
+			Error: fmt.Sprintf("expected commitment type %v, got "+
+				"%v", expectedChanBid.CommitmentType,
+				*req.CommitmentType),
+		}, nil
+	}
+
 	return &lndclient.AcceptorResponse{Accept: true}, nil
 }

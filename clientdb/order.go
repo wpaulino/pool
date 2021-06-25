@@ -10,6 +10,7 @@ import (
 	"github.com/lightninglabs/pool/event"
 	"github.com/lightninglabs/pool/order"
 	"github.com/lightninglabs/pool/sidecar"
+	"github.com/lightningnetwork/lnd/lnwallet"
 	"github.com/lightningnetwork/lnd/tlv"
 	"go.etcd.io/bbolt"
 )
@@ -22,6 +23,8 @@ const (
 	// bidSidecarTicketType is the tlv type we use to store the sidecar
 	// ticket on bid orders.
 	bidSidecarTicketType tlv.Type = 2
+
+	orderCommitmentType tlv.Type = 3
 )
 
 var (
@@ -637,6 +640,7 @@ func deserializeOrderTlvData(r io.Reader, o order.Order) error {
 	var (
 		selfChanBalance uint64
 		sidecarTicket   []byte
+		commitmentType  uint16
 	)
 
 	// We'll add records for all possible additional order data fields here
@@ -647,6 +651,7 @@ func deserializeOrderTlvData(r io.Reader, o order.Order) error {
 			bidSelfChanBalanceType, &selfChanBalance,
 		),
 		tlv.MakePrimitiveRecord(bidSidecarTicketType, &sidecarTicket),
+		tlv.MakePrimitiveRecord(orderCommitmentType, &commitmentType),
 	)
 	if err != nil {
 		return err
@@ -679,6 +684,13 @@ func deserializeOrderTlvData(r io.Reader, o order.Order) error {
 		}
 	}
 
+	if t, ok := parsedTypes[orderCommitmentType]; ok && t == nil {
+		o.Details().CommitmentType = new(lnwallet.CommitmentType)
+		*o.Details().CommitmentType = lnwallet.CommitmentType(
+			commitmentType,
+		)
+	}
+
 	return nil
 }
 
@@ -689,6 +701,12 @@ func serializeOrderTlvData(w io.Writer, o order.Order) error {
 
 	switch castOrder := o.(type) {
 	case *order.Ask:
+		if o.Details().CommitmentType != nil {
+			commitmentType := uint16(*o.Details().CommitmentType)
+			tlvRecords = append(tlvRecords, tlv.MakePrimitiveRecord(
+				orderCommitmentType, &commitmentType,
+			))
+		}
 
 	case *order.Bid:
 		if castOrder.SelfChanBalance != 0 {
@@ -709,6 +727,13 @@ func serializeOrderTlvData(w io.Writer, o order.Order) error {
 			sidecarBytes := buf.Bytes()
 			tlvRecords = append(tlvRecords, tlv.MakePrimitiveRecord(
 				bidSidecarTicketType, &sidecarBytes,
+			))
+		}
+
+		if o.Details().CommitmentType != nil {
+			commitmentType := uint16(*o.Details().CommitmentType)
+			tlvRecords = append(tlvRecords, tlv.MakePrimitiveRecord(
+				orderCommitmentType, &commitmentType,
 			))
 		}
 	}

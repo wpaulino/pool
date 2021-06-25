@@ -15,6 +15,7 @@ import (
 	"github.com/lightninglabs/pool/terms"
 	"github.com/lightningnetwork/lnd/keychain"
 	"github.com/lightningnetwork/lnd/lntypes"
+	"github.com/lightningnetwork/lnd/lnwallet"
 	"github.com/lightningnetwork/lnd/lnwallet/chainfee"
 	"github.com/lightningnetwork/lnd/lnwire"
 )
@@ -305,6 +306,9 @@ type Kit struct {
 	// MinUnitsMatch signals the minimum number of units that must be
 	// matched against an order.
 	MinUnitsMatch SupplyUnit
+
+	// TODO: Don't pull in all of lnwallet?
+	CommitmentType *lnwallet.CommitmentType
 }
 
 // Nonce is the unique identifier of each order and MUST be created by hashing a

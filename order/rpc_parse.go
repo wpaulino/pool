@@ -15,6 +15,7 @@ import (
 	"github.com/lightninglabs/pool/poolrpc"
 	"github.com/lightninglabs/pool/terms"
 	"github.com/lightningnetwork/lnd/lntypes"
+	"github.com/lightningnetwork/lnd/lnwallet"
 	"github.com/lightningnetwork/lnd/lnwallet/chainfee"
 	"github.com/lightningnetwork/lnd/tor"
 )
@@ -61,6 +62,29 @@ func ParseRPCOrder(version, leaseDuration uint32,
 			"total order units")
 	}
 	kit.MinUnitsMatch = SupplyUnit(details.MinUnitsMatch)
+
+	// If the order specified a specific commitment type it would like to
+	// match with, parse it.
+	switch details.CommitmentType {
+	case auctioneerrpc.CommitmentType_UNKNOWN_COMMITMENT_TYPE:
+		break
+
+	case auctioneerrpc.CommitmentType_STATIC_REMOTE_KEY:
+		kit.CommitmentType = new(lnwallet.CommitmentType)
+		*kit.CommitmentType = lnwallet.CommitmentTypeTweakless
+
+	case auctioneerrpc.CommitmentType_ANCHORS_ZERO_FEE:
+		kit.CommitmentType = new(lnwallet.CommitmentType)
+		*kit.CommitmentType = lnwallet.CommitmentTypeAnchorsZeroFeeHtlcTx
+
+	case auctioneerrpc.CommitmentType_SCRIPT_ENFORCED_LEASE:
+		kit.CommitmentType = new(lnwallet.CommitmentType)
+		*kit.CommitmentType = lnwallet.CommitmentTypeScriptEnforcedLease
+
+	default:
+		return nil, fmt.Errorf("unhandled channel type %v",
+			details.CommitmentType)
+	}
 
 	return kit, nil
 }

@@ -347,6 +347,13 @@ enum ChannelType {
     ANCHORS = 1;
 }
 
+enum CommitmentType {
+    UNKNOWN_COMMITMENT_TYPE = 0;
+    STATIC_REMOTE_KEY = 1;
+    ANCHORS_ZERO_FEE = 2;
+    SCRIPT_ENFORCED_LEASE = 3;
+}
+
 message ChannelInfo {
     // The identifying type of the channel.
     ChannelType type = 1;
@@ -850,6 +857,8 @@ message ServerOrder {
     expressed in satoshis per 1000 weight units (sat/kW).
     */
     uint64 max_batch_fee_rate_sat_per_kw = 13;
+
+    CommitmentType commitment_type = 14;
 }
 
 enum NodeTier {
